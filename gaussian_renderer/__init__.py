@@ -11,7 +11,7 @@
 
 import torch
 import math
-from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from diff_gaussian_rasterization_depth import GaussianRasterizationSettings, GaussianRasterizer
 from utils.sh_utils import eval_sh
 
 def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, \
@@ -129,7 +129,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     #     ill_type='over_exposure')#low_light
     
     
-    rendered_image, radii, depth = rasterizer(
+    rendered_image, radii, depth, _ = rasterizer(
         means3D = means3D_final,
         means2D = means2D,
         shs = None, #shs*pc.get_concealing[:, None, :]
@@ -142,7 +142,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     # for ablation
     # rendered_image_concealing = rendered_image
     
-    rendered_image_concealing, radii, depth = rasterizer(
+    rendered_image_concealing, radii, depth, _ = rasterizer(
         means3D = means3D_final,
         means2D = means2D,
         shs = None, #shs*pc.get_concealing[:, None, :]

@@ -203,7 +203,15 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         
         loss.backward()
         for param in gaussians.get_param():
-            torch.nn.utils.clip_grad_value_(param, clip_value=0.5)
+            try:
+                if isinstance(param, list):
+                    v_params = [p for p in param if getattr(p, "grad", None) is not None]
+                    if v_params:
+                        torch.nn.utils.clip_grad_value_(v_params, clip_value=0.5)
+                elif getattr(param, "grad", None) is not None:
+                    torch.nn.utils.clip_grad_value_(param, clip_value=0.5)
+            except Exception:
+                pass
             # torch.nn.utils.clip_grad_norm_(param, max_norm=1)
         viewspace_point_tensor_grad = torch.zeros_like(viewspace_point_tensor)
         
