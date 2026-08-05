@@ -11,6 +11,7 @@
 
 import torch
 import numpy as np
+import math
 from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
 from torch import nn
 import os
@@ -35,20 +36,28 @@ from tqdm import tqdm
 
 
 class SpecularMLP(torch.nn.Module):
-    def __init__(self, embedding_dim):
+    def __init__(self, embedding_dim, multires=4):
         super().__init__()
-        # Input: View Direction (3) + Illumination Embedding (embedding_dim)
-        input_dim = 3 + embedding_dim
+        self.multires = multires
+        # 3 (view_dirs) + 24 (PE) = 27. Total input = 27 + embedding_dim
+        input_dim = 3 + (3 * 2 * self.multires) + embedding_dim
         self.net = torch.nn.Sequential(
             torch.nn.Linear(input_dim, 64),
             torch.nn.ReLU(),
             torch.nn.Linear(64, 32),
             torch.nn.ReLU(),
             torch.nn.Linear(32, 3),
-            torch.nn.Sigmoid() # Bound output between 0 and 1 for color addition
+            torch.nn.Sigmoid()
         )
+
     def forward(self, view_dirs, app_embeddings):
-        x = torch.cat([view_dirs, app_embeddings], dim=-1)
+        pe = []
+        for i in range(self.multires):
+            pe.append(torch.sin(2.0**i * math.pi * view_dirs))
+            pe.append(torch.cos(2.0**i * math.pi * view_dirs))
+        
+        pe_view = torch.cat([view_dirs] + pe, dim=-1)
+        x = torch.cat([pe_view, app_embeddings], dim=-1)
         return self.net(x)
 
 

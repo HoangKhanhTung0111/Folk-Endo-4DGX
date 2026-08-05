@@ -188,7 +188,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
         specular_pred = torch.cat(specular_residual_list, 0)
         specular_loss = torch.mean(torch.abs(specular_pred))
-        loss = loss + 0.005 * specular_loss
+        loss = loss + 0.0005 * specular_loss
         
         
         # out_save_dep = rendered_depths.squeeze(0).permute(1,2,0).detach().cpu().numpy()
