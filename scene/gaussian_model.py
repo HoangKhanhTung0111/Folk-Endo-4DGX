@@ -58,7 +58,7 @@ class SpecularMLP(torch.nn.Module):
         
         pe_view = torch.cat([view_dirs] + pe, dim=-1)
         x = torch.cat([pe_view, app_embeddings], dim=-1)
-        return self.net(x)
+        return self.net(x) * 0.1
 
 
 class GaussianModel:
