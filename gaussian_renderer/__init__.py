@@ -111,7 +111,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             app_embeddings = pc.get_embedding(embedding_idx)[None]
 
     # 1. Calculate View Directions (v)
-    camera_center = viewpoint_camera.camera_center
+    camera_center = viewpoint_camera.camera_center.to(pc.get_xyz.device)
     dir_pp = (pc.get_xyz - camera_center.repeat(pc.get_xyz.shape[0], 1))
     view_dirs = dir_pp / dir_pp.norm(dim=1, keepdim=True)
 
