@@ -120,7 +120,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         radii_list = []
         visibility_filter_list = []
         viewspace_point_tensor_list = []
-        specular_residual_list = []
         
         for viewpoint_cam in viewpoint_cams:
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage)
@@ -145,7 +144,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             radii_list.append(radii.unsqueeze(0))
             visibility_filter_list.append(visibility_filter.unsqueeze(0))
             viewspace_point_tensor_list.append(viewspace_point_tensor)
-            specular_residual_list.append(render_pkg["specular"])
             
         radii = torch.cat(radii_list,0).max(dim=0).values
         visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
@@ -185,10 +183,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         tv_loss = opt.tv_weight * (img_tvloss + depth_tvloss)
         
         loss = Ll1 + depth_loss + tv_loss + opt.control_weight*loss_control #+ 1e-1*loss_structure + 1e-6*loss_cc
-
-        specular_pred = torch.cat(specular_residual_list, 0)
-        specular_loss = torch.mean(torch.abs(specular_pred))
-        loss = loss + 0.002 * specular_loss
         
         
         # out_save_dep = rendered_depths.squeeze(0).permute(1,2,0).detach().cpu().numpy()

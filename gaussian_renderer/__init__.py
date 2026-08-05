@@ -119,7 +119,7 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     expanded_embeddings = app_embeddings.repeat(pc.get_xyz.shape[0], 1)
 
     # 3. Compute Specular Residual
-    specular_residual = pc.specular_network(view_dirs, expanded_embeddings)
+    specular_residual = pc.specular_network(view_dirs, expanded_embeddings, colors_precomp.detach())
 
     # 4. Apply Physics Equation: Final Color = Diffuse + Specular
     colors_precomp = colors_precomp + specular_residual
@@ -179,6 +179,5 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             "depth": depth,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
-            "radii": radii,
-            "specular": specular_residual,}
+            "radii": radii,}
 

@@ -39,8 +39,8 @@ class SpecularMLP(torch.nn.Module):
     def __init__(self, embedding_dim, multires=4):
         super().__init__()
         self.multires = multires
-        # 3 (view_dirs) + 24 (PE) = 27. Total input = 27 + embedding_dim
-        input_dim = 3 + (3 * 2 * self.multires) + embedding_dim
+        # 3 (view_dirs) + 24 (PE) + embedding_dim + 3 (diffuse_color)
+        input_dim = 3 + (3 * 2 * self.multires) + embedding_dim + 3
         self.net = torch.nn.Sequential(
             torch.nn.Linear(input_dim, 64),
             torch.nn.ReLU(),
@@ -50,15 +50,16 @@ class SpecularMLP(torch.nn.Module):
             torch.nn.Sigmoid()
         )
 
-    def forward(self, view_dirs, app_embeddings):
+    def forward(self, view_dirs, app_embeddings, diffuse_color):
         pe = []
         for i in range(self.multires):
             pe.append(torch.sin(2.0**i * math.pi * view_dirs))
             pe.append(torch.cos(2.0**i * math.pi * view_dirs))
-        
         pe_view = torch.cat([view_dirs] + pe, dim=-1)
-        x = torch.cat([pe_view, app_embeddings], dim=-1)
-        return self.net(x) * 0.1
+        
+        # Concatenate View + Illumination + Material (Diffuse Color)
+        x = torch.cat([pe_view, app_embeddings, diffuse_color], dim=-1)
+        return self.net(x)
 
 
 class GaussianModel:
