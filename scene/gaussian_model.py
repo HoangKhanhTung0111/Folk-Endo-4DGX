@@ -36,7 +36,7 @@ from tqdm import tqdm
 
 
 class SpecularMLP(torch.nn.Module):
-    def __init__(self, embedding_dim, multires=4):
+    def __init__(self, embedding_dim, multires=1):
         super().__init__()
         self.multires = multires
         # 3 (view_dirs) + 24 (PE) + embedding_dim + 3 (diffuse_color)

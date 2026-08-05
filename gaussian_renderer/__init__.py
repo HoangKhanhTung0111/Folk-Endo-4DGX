@@ -109,22 +109,6 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             app_embeddings = pc.get_embedding(viewpoint_camera.id)[None]
         else:
             app_embeddings = pc.get_embedding(embedding_idx)[None]
-
-    # 1. Calculate View Directions (v)
-    camera_center = viewpoint_camera.camera_center.to(pc.get_xyz.device)
-    dir_pp = (pc.get_xyz - camera_center.repeat(pc.get_xyz.shape[0], 1))
-    view_dirs = dir_pp / dir_pp.norm(dim=1, keepdim=True)
-
-    # 2. Match embedding dimensions
-    expanded_embeddings = app_embeddings.repeat(pc.get_xyz.shape[0], 1)
-
-    # 3. Compute Specular Residual
-    specular_residual = pc.specular_network(view_dirs, expanded_embeddings, colors_precomp.detach())
-
-    # 4. Apply Physics Equation: Final Color = Diffuse + Specular
-    colors_precomp = colors_precomp + specular_residual
-    # Ensure colors stay in valid [0, 1] range after addition
-    colors_precomp = torch.clamp(colors_precomp, 0.0, 1.0)
             
     if illu_type is None:
         input_illu_type=viewpoint_camera.illu_type
@@ -133,6 +117,21 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
         
     color_tone = pc.region(colors_precomp, app_embeddings.repeat(len(means2D), 1), \
         ill_type=input_illu_type)
+
+    # SEQUENTIAL STAGE 2: View-Dependent Specular Compensation
+    camera_center = viewpoint_camera.camera_center.to(pc.get_xyz.device)
+    dir_pp = (pc.get_xyz - camera_center.repeat(pc.get_xyz.shape[0], 1))
+    view_dirs = dir_pp / dir_pp.norm(dim=1, keepdim=True)
+    expanded_embeddings = app_embeddings.repeat(pc.get_xyz.shape[0], 1)
+
+    # Calculate specular based on the raw diffuse features
+    specular_residual = pc.specular_network(view_dirs, expanded_embeddings, pc.features.detach())
+
+    # Add specular to Pass 1 (Raw Features)
+    colors_precomp = torch.clamp(pc.features + specular_residual, 0.0, 1.0)
+
+    # Add specular to Pass 2 (Concealed/Inpainted Features)
+    color_tone = torch.clamp(color_tone + specular_residual, 0.0, 1.0)
     
     # for ablation
     # color_tone = pc.region(colors_precomp, \
