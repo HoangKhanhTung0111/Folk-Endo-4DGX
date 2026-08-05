@@ -76,7 +76,7 @@ def evaluate(model_paths):
 
                 method_dir = test_dir / method
                 gt_dir = method_dir/ "gt"
-                renders_dir = method_dir / "render_con"
+                renders_dir = method_dir / "render_restored"
                 masks_dir = method_dir / "masks"
                 
                 renders, gts, masks, image_names = readImages(renders_dir, gt_dir, masks_dir)

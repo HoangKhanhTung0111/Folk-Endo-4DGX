@@ -179,5 +179,6 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
             "depth": depth,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
-            "radii": radii,}
+            "radii": radii,
+            "specular": specular_residual,}
 
