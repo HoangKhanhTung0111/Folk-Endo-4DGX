@@ -34,6 +34,24 @@ from utils.loss_utils import l1_loss
 from tqdm import tqdm
 
 
+class SpecularMLP(torch.nn.Module):
+    def __init__(self, embedding_dim):
+        super().__init__()
+        # Input: View Direction (3) + Illumination Embedding (embedding_dim)
+        input_dim = 3 + embedding_dim
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(input_dim, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 3),
+            torch.nn.Sigmoid() # Bound output between 0 and 1 for color addition
+        )
+    def forward(self, view_dirs, app_embeddings):
+        x = torch.cat([view_dirs, app_embeddings], dim=-1)
+        return self.net(x)
+
+
 class GaussianModel:
 
     def setup_functions(self):
@@ -76,6 +94,7 @@ class GaussianModel:
         self.spatial_lr_scale = 0
         self.region = RegionConcealing(3, args.net_width, 3, 1, args)
         self.spatial = SpatialConcealing(3, args.net_width, 3, 1, args)
+        self.specular_network = SpecularMLP(args.illumination_embedding_dim).cuda()
         self.setup_functions()
 
     def capture(self):
@@ -98,6 +117,7 @@ class GaussianModel:
             self.optimizer.state_dict(),
             self.percent_dense,
             self.spatial_lr_scale,
+            self.specular_network.state_dict(),
         )
         
     def get_param(self):
@@ -131,11 +151,13 @@ class GaussianModel:
             xyz_gradient_accum, 
             denom,
             opt_dict, 
-            self.spatial_lr_scale) = model_args
+            self.spatial_lr_scale,
+            specular_network_state) = model_args
         self.training_setup(training_args)
         self.xyz_gradient_accum = xyz_gradient_accum
         self.denom = denom
         self.optimizer.load_state_dict(opt_dict)
+        self.specular_network.load_state_dict(specular_network_state)
 
     @property
     def get_scaling(self):
@@ -223,7 +245,8 @@ class GaussianModel:
             {'params': [self.features], 'lr': training_args.feature_lr, "name": "f_dc"},
             {'params': [self._opacity], 'lr': training_args.opacity_lr, "name": "opacity"},
             {'params': [self._scaling], 'lr': training_args.scaling_lr, "name": "scaling"},
-            {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"}
+            {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"},
+            {'params': list(self.specular_network.parameters()), 'lr': 1e-3, "name": "specular_network"}
         ]
         
         if self.illumination_embeddings is not None:
@@ -369,6 +392,11 @@ class GaussianModel:
         weight_dict_glo = torch.load(os.path.join(path,"spatial.pth"),map_location="cuda")
         self.spatial.load_state_dict(weight_dict_glo)
         self.spatial = self.spatial.cuda()
+
+        if os.path.exists(os.path.join(path, "specular.pth")):
+            specular_weight_dict = torch.load(os.path.join(path,"specular.pth"),map_location="cuda")
+            self.specular_network.load_state_dict(specular_weight_dict)
+            self.specular_network = self.specular_network.cuda()
         
         self.illumination_embeddings = torch.load(os.path.join(path,"embedding.pth"),map_location="cuda")
 
@@ -381,6 +409,7 @@ class GaussianModel:
     def save_concealing(self, path):
         torch.save(self.region.state_dict(),os.path.join(path, "region.pth"))
         torch.save(self.spatial.state_dict(),os.path.join(path, "spatial.pth"))
+        torch.save(self.specular_network.state_dict(),os.path.join(path, "specular.pth"))
         
     def save_embedding(self, path):
         torch.save(self.illumination_embeddings, os.path.join(path, "embedding.pth"))
