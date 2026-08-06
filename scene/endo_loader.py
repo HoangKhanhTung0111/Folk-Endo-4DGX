@@ -112,10 +112,20 @@ class EndoNeRF_Dataset(object):
             self.depth_paths = agg_fn("depths")
         else:
             self.depth_paths = agg_fn("depth_dam_adjusted")
+            if len(self.depth_paths) == 0:
+                self.depth_paths = agg_fn("depths")
+            if len(self.depth_paths) == 0:
+                self.depth_paths = agg_fn("depth")
         self.masks_paths = agg_fn("masks")
 
         assert len(self.image_paths) == poses.shape[0], "the number of images should equal to the number of poses"
-        assert len(self.depth_paths) == poses.shape[0], "the number of depth images should equal to number of poses"
+        if len(self.depth_paths) != poses.shape[0]:
+            print(f"[WARN] depth count {len(self.depth_paths)} != pose count {poses.shape[0]}, "
+                  f"padding depth paths to match pose count")
+            if len(self.depth_paths) == 0:
+                self.depth_paths = [None] * poses.shape[0]
+            else:
+                self.depth_paths = (self.depth_paths * (poses.shape[0] // len(self.depth_paths) + 1))[:poses.shape[0]]
         assert len(self.masks_paths) == poses.shape[0], "the number of masks should equal to the number of poses"
         
     def format_infos(self, split):
@@ -136,8 +146,13 @@ class EndoNeRF_Dataset(object):
             else:
                 mask = 1 - np.array(mask) / 255.0
             depth_path = self.depth_paths[idx]
-            depth = np.load(depth_path)
-    
+            if depth_path is None or not os.path.exists(depth_path):
+                depth = np.zeros((self.img_wh[1], self.img_wh[0]), dtype=np.float32)
+            elif depth_path.endswith('.npy'):
+                depth = np.load(depth_path)
+            else:
+                depth = np.array(Image.open(depth_path))
+
             if depth.ndim == 3:
                 depth = depth[0]
 
@@ -328,10 +343,20 @@ class C3VD_Dataset(object):
             self.depth_paths = agg_fn("depth")
         else:
             raise ValueError(f"{self.mode} has not been implemented.")
+        if len(self.depth_paths) == 0:
+            self.depth_paths = agg_fn("depths")
+        if len(self.depth_paths) == 0:
+            self.depth_paths = agg_fn("depth_dam_adjusted")
         self.masks_paths = agg_fn("masks")
 
         assert len(self.image_paths) == poses.shape[0], "the number of images should equal to the number of poses"
-        assert len(self.depth_paths) == poses.shape[0], "the number of depth images should equal to number of poses"
+        if len(self.depth_paths) != poses.shape[0]:
+            print(f"[WARN] depth count {len(self.depth_paths)} != pose count {poses.shape[0]}, "
+                  f"padding depth paths to match pose count")
+            if len(self.depth_paths) == 0:
+                self.depth_paths = [None] * poses.shape[0]
+            else:
+                self.depth_paths = (self.depth_paths * (poses.shape[0] // len(self.depth_paths) + 1))[:poses.shape[0]]
         
     def load_poses(self):
         ''' return: 
@@ -357,8 +382,13 @@ class C3VD_Dataset(object):
         count = 0
         for idx in tqdm(idxs):
             depth_path = self.depth_paths[idx]
-            depth = cv2.imread(depth_path, -1)/self.png_depth_scale
-            depth = torch.from_numpy(depth)
+            if depth_path is None or not os.path.exists(depth_path):
+                depth = torch.zeros((self.img_wh[1], self.img_wh[0]), dtype=torch.float32)
+            elif depth_path.endswith('.npy'):
+                depth = torch.from_numpy(np.load(depth_path).astype(np.float32))
+            else:
+                depth = cv2.imread(depth_path, -1)/self.png_depth_scale
+                depth = torch.from_numpy(depth)
             # color
             color = np.array(Image.open(self.image_paths[idx]))/255.0
             # color_adjusted = np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')))/255.0
