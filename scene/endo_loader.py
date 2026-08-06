@@ -226,7 +226,13 @@ class EndoNeRF_Dataset(object):
         return pts_wld
     
     def get_color_depth_mask(self, idx, mode):
-        depth = np.load(self.depth_paths[idx])
+        depth_path = self.depth_paths[idx]
+        if depth_path is None or not os.path.exists(depth_path):
+            depth = np.zeros((self.img_wh[1], self.img_wh[0]), dtype=np.float32)
+        elif depth_path.endswith('.npy'):
+            depth = np.load(depth_path)
+        else:
+            depth = np.array(Image.open(depth_path))
         if depth.ndim == 3:
             depth = depth[0]
         if 'stereomis' in self.root_dir:
@@ -463,7 +469,13 @@ class C3VD_Dataset(object):
         return pts_wld
     
     def get_color_depth_mask(self, idx, mode):
-        depth = cv2.imread(self.depth_paths[idx], -1)/self.png_depth_scale
+        depth_path = self.depth_paths[idx]
+        if depth_path is None or not os.path.exists(depth_path):
+            depth = np.zeros((self.img_wh[1], self.img_wh[0]), dtype=np.float32)
+        elif depth_path.endswith('.npy'):
+            depth = np.load(depth_path).astype(np.float32)
+        else:
+            depth = cv2.imread(depth_path, -1)/self.png_depth_scale
         
         color = np.array(Image.open(self.image_paths[idx]))/255.0
         mask = np.ones_like(depth)
