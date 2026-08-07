@@ -125,6 +125,12 @@ def fetchPly(path):
     normals = np.vstack([vertices['nx'], vertices['ny'], vertices['nz']]).T
     return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
+def generate_random_point_cloud(num_pts=30000):
+    xyz = np.random.rand(num_pts, 3) * 10 - 5
+    colors = np.clip(np.random.rand(num_pts, 3), 0.0, 1.0).astype(np.float32)
+    normals = np.zeros((num_pts, 3), dtype=np.float32)
+    return BasicPointCloud(points=xyz, colors=colors, normals=normals)
+
 def storePly(path, xyz, rgb):
     # Define the dtype for the structured array
     dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
@@ -210,16 +216,21 @@ def readEndoNeRFInfo(datadir, mode):
 
     # initialize sparse point clouds
     ply_path = os.path.join(datadir, "points3d.ply")
-    xyz, rgb, normals = endo_dataset.get_init_pts()
-    
-    normals = np.random.random((xyz.shape[0], 3))
-    pcd = BasicPointCloud(points=xyz, colors=rgb, normals=normals)
-    storePly(ply_path, xyz,rgb*255)
+    try:
+        xyz, rgb, normals = endo_dataset.get_init_pts()
+        normals = np.random.random((xyz.shape[0], 3))
+        pcd = BasicPointCloud(points=xyz, colors=rgb, normals=normals)
+        storePly(ply_path, xyz,rgb*255)
+    except Exception as e:
+        print(f"[WARN] get_init_pts failed ({e}), using random point cloud")
+        pcd = generate_random_point_cloud()
 
     try:
         pcd = fetchPly(ply_path)
     except:
         pcd = pcd
+    if pcd is None or pcd.points.shape[0] < 3:
+        pcd = generate_random_point_cloud()
     
     # get the maximum time
     maxtime = endo_dataset.get_maxtime()
@@ -260,7 +271,9 @@ def readScaredInfo(datadir, mode, init_pts):
     try:
         pcd = fetchPly(ply_path)
     except:
-        pcd = pcd
+        pcd = generate_random_point_cloud()
+    if pcd is None or pcd.points.shape[0] < 3:
+        pcd = generate_random_point_cloud()
     
     # get the maximum time
     maxtime = scared_dataset.get_maxtime()
@@ -291,17 +304,22 @@ def readC3VDInfo(datadir, mode):
 
     # initialize sparse point clouds
     ply_path = os.path.join(datadir, "points3d.ply")
-    xyz, rgb, normals = endo_dataset.get_init_pts()
-    
-    normals = np.random.random((xyz.shape[0], 3))
-    pcd = BasicPointCloud(points=xyz, colors=rgb, normals=normals)
-    storePly(ply_path, xyz,rgb*255)
+    try:
+        xyz, rgb, normals = endo_dataset.get_init_pts()
+        normals = np.random.random((xyz.shape[0], 3))
+        pcd = BasicPointCloud(points=xyz, colors=rgb, normals=normals)
+        storePly(ply_path, xyz,rgb*255)
+    except Exception as e:
+        print(f"[WARN] get_init_pts failed ({e}), using random point cloud")
+        pcd = generate_random_point_cloud()
     
     embedding_info = endo_dataset.embedding_info
     try:
         pcd = fetchPly(ply_path)
     except:
-        pcd = pcd
+        pcd = generate_random_point_cloud()
+    if pcd is None or pcd.points.shape[0] < 3:
+        pcd = generate_random_point_cloud()
     
     # get the maximum time
     maxtime = endo_dataset.get_maxtime()

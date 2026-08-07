@@ -159,8 +159,8 @@ class EndoNeRF_Dataset(object):
             depth = torch.from_numpy(depth)
             mask = self.transform(mask).bool()
             # color
-            color = np.array(Image.open(self.image_paths[idx]))/255.0
-            color_adjusted = np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')))/255.0
+            color = (np.array(Image.open(self.image_paths[idx])) / 255.0).astype(np.float32)
+            color_adjusted = (np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')) / 255.0)).astype(np.float32)
             reference = None
             illu_type = 'low_light' if color_adjusted.mean()>color.mean() else 'over_exposure'
             image = self.transform(color)
@@ -240,7 +240,7 @@ class EndoNeRF_Dataset(object):
                 mask = mask[..., 0]
         else:
             mask = 1 - np.array(Image.open(self.masks_paths[idx]))/255.0
-        color = np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')))/255.0
+        color = (np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted'))) / 255.0).astype(np.float32)
         # color = np.array(Image.open(self.image_paths[idx]))/255.0
         return color, depth, mask
              
@@ -395,11 +395,11 @@ class C3VD_Dataset(object):
             else:
                 depth = cv2.imread(depth_path, -1)/self.png_depth_scale
                 depth = torch.from_numpy(depth)
-            # color
-            color = np.array(Image.open(self.image_paths[idx]))/255.0
+# color
+            color = (np.array(Image.open(self.image_paths[idx])) / 255.0).astype(np.float32)
             # color_adjusted = np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')))/255.0
             # color_adjusted = np.array(Image.open('/home/lastbasket/code/llgs/Endo-4DGX/refined/data/C3VD/cecum_t1_b/color_adjusted/0000_color_adjusted.png'))/255.0
-            color_adjusted = np.array(Image.open(self.image_paths[idx].replace('color', 'color_adjusted')))/255.0
+            color_adjusted = (np.array(Image.open(self.image_paths[idx].replace('color', 'color_adjusted'))) / 255.0).astype(np.float32)
             
             illu_type = 'low_light' if color_adjusted.mean()>color.mean() else 'over_exposure'
             
@@ -477,7 +477,7 @@ class C3VD_Dataset(object):
         else:
             depth = cv2.imread(depth_path, -1)/self.png_depth_scale
         
-        color = np.array(Image.open(self.image_paths[idx]))/255.0
+        color = (np.array(Image.open(self.image_paths[idx])) / 255.0).astype(np.float32)
         mask = np.ones_like(depth)
         return color, depth, mask
              
