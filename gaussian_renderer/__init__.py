@@ -122,8 +122,6 @@ def render(viewpoint_camera, pc, pipe, bg_color : torch.Tensor, scaling_modifier
     camera_center = viewpoint_camera.camera_center.to(pc.get_xyz.device)
     dir_pp = (pc.get_xyz - camera_center.repeat(pc.get_xyz.shape[0], 1))
     view_dirs = dir_pp / dir_pp.norm(dim=1, keepdim=True)
-    # Normalize view input to roughly [-1, 1] before positional encoding
-    view_dirs = view_dirs / 45.0
     expanded_embeddings = app_embeddings.repeat(pc.get_xyz.shape[0], 1)
 
     # Calculate specular based on the raw diffuse features
