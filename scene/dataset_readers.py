@@ -219,7 +219,7 @@ def readEndoNeRFInfo(datadir, mode):
     try:
         pcd = fetchPly(ply_path)
     except:
-        pcd = None
+        pcd = pcd
     
     # get the maximum time
     maxtime = endo_dataset.get_maxtime()
@@ -260,7 +260,7 @@ def readScaredInfo(datadir, mode, init_pts):
     try:
         pcd = fetchPly(ply_path)
     except:
-        pcd = None
+        pcd = pcd
     
     # get the maximum time
     maxtime = scared_dataset.get_maxtime()
@@ -301,7 +301,7 @@ def readC3VDInfo(datadir, mode):
     try:
         pcd = fetchPly(ply_path)
     except:
-        pcd = None
+        pcd = pcd
     
     # get the maximum time
     maxtime = endo_dataset.get_maxtime()
