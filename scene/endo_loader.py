@@ -160,7 +160,7 @@ class EndoNeRF_Dataset(object):
             mask = self.transform(mask).bool()
             # color
             color = (np.array(Image.open(self.image_paths[idx])) / 255.0).astype(np.float32)
-            color_adjusted = (np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted')) / 255.0)).astype(np.float32)
+            color_adjusted = (np.array(Image.open(self.image_paths[idx].replace('images_mix', 'images_mix_adjusted'))) / 255.0).astype(np.float32)
             reference = None
             illu_type = 'low_light' if color_adjusted.mean()>color.mean() else 'over_exposure'
             image = self.transform(color)
